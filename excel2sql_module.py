@@ -14,11 +14,14 @@ user = input('input "User": ')
 password = input('input "Password": ')
 port = input('input "Port": ')
 
-# pgadmin과 연동
+# postgresql과 연동
 server_suc = 0
 file_suc = 0
 
 try:
+
+    #postgresql db에 연결
+
     conn = psycopg2.connect(host=host, dbname=dbname, user=user, password=password, port=port)
     print("connected to postgreSQL")
     print("-----------------")
@@ -26,10 +29,13 @@ try:
 
 except:
 
+    #postgresql db에 연결 실패 시
+
     print("서버 접속 오류(입력값을 다시 확인하세요)")
-    conn.close()
     print("postgreSQL과의 연결이 종료되었습니다.")
 
+
+#db 연결 성공 시
 if server_suc == 1:
 
     filename = input("같은 폴더 내에 있는 파일명을 입력하세요(확장자명까지): ")
@@ -56,15 +62,21 @@ if server_suc == 1:
         print("파일이 정상적으로 로드되었습니다. ")
 
     except:
+        #넘파이 행렬로 변환이 안 되면, 데이터프레임이 제대로 로드된 게 아니므로 종료.
+
         print("파일 오류(확장자, 파일 존재유무 확인)")
         conn.close()
         print("-----------------")
         print("Program end")
 
+#데이터프레임 로드 및 넘파이 행렬로의 변환 성공 시
 if file_suc == 1:
 
+
+    #테이블 정보 입력
     table_name = input('input "Table name": ')
 
+    #전송 전, 이상유무 확인
     print("------------------------------")
     print("Host: ", host)
     print("DBname: ", dbname)
@@ -88,6 +100,8 @@ if file_suc == 1:
         for idx in range(len(df_numpy)):
 
             try:
+                #컬럼의 개수에 따라 {0},{1}....부분 개수 조정
+                #컬럼의 개수에 따라 format함수 내의 df_numpy[idx][?] 개수 조정
 
                 sqlString = "INSERT INTO " + table_name + " VALUES ({0}, {1}, '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{10}', '{11}', '{12}', {13}, '{14}')".format(
                     df_numpy[idx][0], df_numpy[idx][1], df_numpy[idx][2], df_numpy[idx][3], df_numpy[idx][4],
@@ -101,10 +115,11 @@ if file_suc == 1:
 
                 fail_row.append(idx)
                 fail_company_id.append(df_numpy[idx][0])
-
+                #전송 실패 시 , rollback !
                 conn.rollback()
                 break
 
+        #실패한 행의 개수가 0이면 commit !
         if len(fail_row) == 0:
             conn.commit()
             print("------------------------------")
@@ -113,8 +128,9 @@ if file_suc == 1:
 
             print("Total Duration of time: ", time.time() - start, "Seconds")  # 시간 측정 종료
 
+            conn.close() #connection 종료
 
-
+        #실패한 행의 개수가 0이 아니면 commit하지 않고 connection 종료
         else:
             print("------------------------------")
 
@@ -123,17 +139,23 @@ if file_suc == 1:
             print("오류 회사 코드: ", fail_company_id)
 
 
-        conn.close()
+        conn.close() #connection 종료
         print("postgreSQL과의 연결이 종료되었습니다.")  # 시간 측정 종료
 
+
+
+    #전송 전 'n' 입력 시, connection 종료
+
     elif check == "n":
-        conn.close()
+        conn.close() #connection 종료
         print("------------------------------")
         print("파일을 전송하지 않습니다")
         print("postgreSQL과의 연결이 종료되었습니다.")
 
+
+    # 'y', 'n' 이외의 문자 입력 시 프로그램 종료
     else:
-        conn.close()
+        conn.close() #connection 종료
         print("y, n 이외의 문자가 입력되었습니다.")
         print("postgreSQL과의 연결이 종료되었습니다.")
 
